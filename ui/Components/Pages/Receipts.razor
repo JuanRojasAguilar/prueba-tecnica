@@ -1,0 +1,70 @@
+@page "/receipts"
+
+@using ui.Dtos.Receipt
+
+@rendermode InteractiveServer
+
+@inject HttpClient Http
+
+<PageTitle>Facturas</PageTitle>
+
+<h1>Facturas</h1>
+
+<div class="text-end">
+    <a class="btn btn-primary" href="/receipt">Crear factura</a>
+</div>
+
+@if (receipts == null)
+{
+    <p><em>Cargando...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Nombre cliente</th>
+                <th>Total</th>
+                <th>Fecha de creación</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var receipt in receipts)
+            {
+                ReceiptOverview currentReceipt = receipt;
+                <tr>
+                    <td>@receipt.Id</td>
+                    <td>@receipt.CustomerName</td>
+                    <td>@receipt.Total</td>
+                    <td>@receipt.CreatedOn</td>
+                    <td>
+                        <a class="btn btn-primary" href="/receipt/@receipt.Id">Ver</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private ReceiptOverview[]? receipts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadReceiptsAsync();
+    }
+
+    private async Task LoadReceiptsAsync()
+    {
+        try
+        {
+            receipts = await Http.GetFromJsonAsync<ReceiptOverview[]>("/api/receipt/overview");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al obtener las facturas: {ex.Message}");
+        }
+    }
+}

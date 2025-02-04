@@ -1,0 +1,110 @@
+@page "/customer/{customerId}"
+@rendermode InteractiveServer
+
+@using System.ComponentModel.DataAnnotations
+@using ui.Dtos.Customer
+
+@inject ILogger<CustomerEdit> Logger
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<PageTitle>Editar cliente</PageTitle>
+<h1>Editar cliente: @customerId</h1>
+
+@if (Model is null)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <EditForm EditContext="_editContext" OnSubmit="Submit" FormName="CustomerEditForm" class="container">
+    <DataAnnotationsValidator />
+
+    <div class="row mb-3">
+        <div class="col">
+            <label for="name" class="form-label">Nombre:</label>
+            <InputText class="form-control" id="name" @bind-Value="Model!.Name" />
+            <ValidationMessage For="() => Model!.Name" />
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col">
+            <label for="email" class="form-label">Correo:</label>
+            <InputText class="form-control" id="email" @bind-Value="Model!.Email" />
+            <ValidationMessage For="() => Model!.Email" />
+        </div>
+        <div class="col">
+            <label for="phone" class="form-label">Teléfono:</label>
+            <InputText class="form-control" id="phone" @bind-Value="Model!.Phone" />
+            <ValidationMessage For="() => Model!.Phone" />
+        </div>
+    </div>
+
+    <div>
+        <button class="btn btn-primary" type="submit">Actualizar</button>
+    </div>
+</EditForm>
+}
+
+@code {
+    [Parameter]
+    public string customerId { get; set; } = string.Empty;
+
+    private UpdateCustomerDto? Model { get; set; }
+    private EditContext? _editContext;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Model = await Http.GetFromJsonAsync<UpdateCustomerDto>($"/api/customer/{customerId}");
+            if (Model is null)
+            {
+                Logger.LogError("Customer with Id {customerId} not found.", customerId);
+                Navigation.NavigateTo("/customers");
+                return;
+            }
+
+            _editContext = new EditContext(Model);
+            _editContext.OnFieldChanged += (sender, eventArgs) => StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading customer with Id {customerId}.", customerId);
+            Navigation.NavigateTo("/customers");
+        }
+    }
+
+    private async Task Submit()
+    {
+        if (_editContext is null || Model is null)
+        {
+            return;
+        }
+
+        if (!_editContext.Validate())
+        {
+            return;
+        }
+
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"/api/customer/{customerId}", Model);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Logger.LogInformation("Customer with Id = {Id} updated successfully.", customerId);
+                Navigation.NavigateTo("/customers");
+            }
+            else
+            {
+                Logger.LogError("Error updating customer. Status code: {StatusCode}", response.StatusCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception occurred while updating customer with Id = {Id}.", customerId);
+        }
+    }
+}

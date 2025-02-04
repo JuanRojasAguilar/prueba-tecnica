@@ -1,0 +1,91 @@
+@page "/product"
+@rendermode InteractiveServer
+
+@using System.ComponentModel.DataAnnotations
+@using ui.Dtos.Product
+
+@inject HttpClient Http
+@inject ILogger<Product> Logger
+@inject NavigationManager Navigation
+
+<PageTitle>Formulario de producto</PageTitle>
+<h1>Crear producto</h1>
+
+<EditForm EditContext="_editContext" OnSubmit="Submit" FormName="ProductForm" class="container">
+    <DataAnnotationsValidator />
+
+    <div class="row mb-3">
+        <div class="col">
+            <label for="id" class="form-label">Identificador:</label>
+            <InputText class="form-control" id="id" @bind-Value="Model!.Id" />
+            <ValidationMessage For="() => Model!.Id" />
+        </div>
+        <div class="col">
+            <label for="name" class="form-label">Nombre:</label>
+            <InputText class="form-control" id="name" @bind-Value="Model!.Name" />
+            <ValidationMessage For="() => Model!.Name" />
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col">
+            <label for="price" class="form-label">Precio:</label>
+            <InputNumber class="form-control" id="price" @bind-Value="Model!.Price" />
+            <ValidationMessage For="() => Model!.Price" />
+        </div>
+        <div class="col">
+            <label for="stock" class="form-label">Stock:</label>
+            <InputNumber class="form-control" id="stock" @bind-Value="Model!.Stock" />
+            <ValidationMessage For="() => Model!.Stock" />
+        </div>
+    </div>
+
+    <div>
+        <button class="btn btn-primary" type="submit">Crear producto</button>
+    </div>
+</EditForm>
+
+@code {
+    [SupplyParameterFromForm]
+    private CreateProductDto? Model { get; set; }
+
+    private EditContext? _editContext;
+
+    protected override void OnInitialized()
+    {
+        Model ??= new CreateProductDto();
+        _editContext = new EditContext(Model);
+
+        _editContext.OnFieldChanged += (sender, eventArgs) =>
+        {
+            StateHasChanged();
+        };
+    }
+
+    private async Task Submit()
+    {
+        if (!_editContext.Validate())
+        {
+            return;
+        }
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/product", Model);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Logger.LogInformation("Product with Id = {Id} created successfully.", Model?.Id);
+                Navigation.NavigateTo("/products");
+            }
+            else
+            {
+                Logger.LogError("Error creating product. Status code: {StatusCode}", response.StatusCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception occurred while creating product with Id = {Id}.", Model?.Id);
+        }
+    }
+}

@@ -1,0 +1,110 @@
+@page "/product/{productId}"
+@rendermode InteractiveServer
+
+@using System.ComponentModel.DataAnnotations
+@using ui.Dtos.Product
+
+@inject ILogger<ProductEdit> Logger
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<PageTitle>Editar producto</PageTitle>
+<h1>Editar producto: @productId</h1>
+
+@if (Model is null)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <EditForm EditContext="_editContext" OnSubmit="Submit" FormName="ProductEditForm" class="container">
+    <DataAnnotationsValidator />
+
+    <div class="row mb-3">
+        <div class="col">
+            <label for="name" class="form-label">Nombre:</label>
+            <InputText class="form-control" id="name" @bind-Value="Model!.Name" />
+            <ValidationMessage For="() => Model!.Name" />
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col">
+            <label for="price" class="form-label">Precio:</label>
+            <InputNumber class="form-control" id="price" @bind-Value="Model!.Price" />
+            <ValidationMessage For="() => Model!.Price" />
+        </div>
+        <div class="col">
+            <label for="stock" class="form-label">Stock:</label>
+            <InputNumber class="form-control" id="stock" @bind-Value="Model!.Stock" />
+            <ValidationMessage For="() => Model!.Stock" />
+        </div>
+    </div>
+
+    <div>
+        <button class="btn btn-primary" type="submit">Actualizar</button>
+    </div>
+</EditForm>
+}
+
+@code {
+    [Parameter]
+    public string productId { get; set; } = string.Empty;
+
+    private UpdateProductDto? Model { get; set; }
+    private EditContext? _editContext;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Model = await Http.GetFromJsonAsync<UpdateProductDto>($"/api/product/{productId}");
+            if (Model is null)
+            {
+                Logger.LogError("Product with Id {productId} not found.", productId);
+                Navigation.NavigateTo("/products");
+                return;
+            }
+
+            _editContext = new EditContext(Model);
+            _editContext.OnFieldChanged += (sender, eventArgs) => StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading product with Id {productId}.", productId);
+            Navigation.NavigateTo("/products");
+        }
+    }
+
+    private async Task Submit()
+    {
+        if (_editContext is null || Model is null)
+        {
+            return;
+        }
+
+        if (!_editContext.Validate())
+        {
+            return;
+        }
+
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"/api/product/{productId}", Model);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Logger.LogInformation("Product with Id = {Id} updated successfully.", productId);
+                Navigation.NavigateTo("/products");
+            }
+            else
+            {
+                Logger.LogError("Error updating product. Status code: {StatusCode}", response.StatusCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception occurred while updating product with Id = {Id}.", productId);
+        }
+    }
+}

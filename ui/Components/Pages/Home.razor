@@ -1,0 +1,73 @@
+﻿@page "/"
+@using ui.Dtos.Account;
+
+@inject HttpClient Http
+@inject IJSRuntime runtime
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <p class="text-dange">@ErrorMessage</p>
+}
+<div>
+    <PageTitle>Home</PageTitle>
+    <EditForm EditContext="_editContext" FormName="LoginForm">
+        <DataAnnotationsValidator />
+        <fieldset>
+            <legend for="email" class="form-label">Email</legend>
+            <InputText
+                id="email"
+                type="email"
+                name="email"
+                placeholder="Ingresa tu correo"
+                @bind-Value="Model!.Email"
+            />
+            <ValidationMessage For="@(() => Model.Email)"/>
+        </fieldset>
+        <fieldset>
+            <legend for="password">Password</legend>
+            <InputText
+                type="password"
+                name="password"
+                placeholder="Ingresa tu contraseña"
+                @bind-Value="Model!.Password"
+            />
+            <ValidationMessage For="@(() => Model.Password)" />
+        </fieldset>
+    </EditForm>
+    <div>
+        <button type="button" class="btn btn-primary">Log In</button>
+    </div>
+</div>
+
+@code
+{
+    private EditContext _editContext;
+
+    [SupplyParameterFromForm]
+    private LoginDto? Model {get; set;}
+    private string ErrorMessage {get; set;} = "";
+
+    protected override void OnInitialized()
+    {
+        Model ??= new LoginDto();
+        _editContext = new EditContext(Model);
+    }
+
+    private async Task LogInApp()
+    {
+        if (!_editContext.Validate()) return;
+
+        var response = await Http.PostAsJsonAsync("/api/login", Model);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var jwtToken = await response.Content.ReadAsStringAsync();
+
+            await runtime.InvokeVoidAsync("document.cookie", $"jwt={jwtToken}; path=/");
+        }
+        else
+        {
+            ErrorMessage = "Credenciales incorrectas";
+        }
+    }
+}

@@ -1,0 +1,155 @@
+@page "/products"
+
+@using System.Timers
+@using ui.Dtos.Product
+
+@rendermode InteractiveServer
+
+@inject HttpClient Http
+
+<PageTitle>Productos</PageTitle>
+
+<h1>Productos</h1>
+
+<div class="d-flex justify-content-between">
+    <div>
+        <label for="nameFilter">Filtrar por nombre:</label>
+        <input id="nameFilter" type="text" value="@nameFilter" @oninput="OnNameFilterChanged" class="form-control" />
+    </div>
+    <div class="text-end">
+        <a class="btn btn-primary" href="/product">Crear producto</a>
+    </div>
+</div>
+
+@if (products == null)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (products.Count == 0)
+{
+    <p><em>Sin resultados</em></p>
+}
+else
+{
+    <table class="table">
+    <thead>
+        <tr>
+            <th>Identificador</th>
+            <th>Nombre</th>
+            <th>Precio</th>
+            <th>Stock</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var product in products)
+            {
+                <tr>
+                    <td>@product.Id</td>
+                    <td>@product.Name</td>
+                    <td>@product.Price</td>
+                    <td>@product.Stock</td>
+                    <td>
+                        <a class="btn btn-primary" href="/product/@product.Id">Editar</a>
+                        <button class="btn btn-danger ms-2" @onclick="() => DeleteProduct(product)">Borrar</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <div class="text-center">
+    @if (hasMoreItems)
+        {
+            <button class="btn btn-secondary" @onclick="LoadMoreProducts">Cargar más</button>
+        }
+    </div>
+}
+
+@code {
+    private List<ProductDto> products = new List<ProductDto>();
+    private string nameFilter = string.Empty;
+    private int pageNumber = 1;
+    private const int pageSize = 5;
+    private bool hasMoreItems = true;
+    private Timer debounceTimer = new Timer(1000) { AutoReset = false };
+
+    protected override async Task OnInitializedAsync()
+    {
+        debounceTimer.Elapsed += async (_, __) =>
+        {
+            await InvokeAsync(async () =>
+    {
+    await LoadProductsAsync(resetPagination: true);
+    StateHasChanged();
+            });
+        };
+
+        await LoadProductsAsync();
+    }
+
+    private async Task LoadProductsAsync(bool resetPagination = false)
+    {
+        if (resetPagination)
+        {
+            pageNumber = 1;
+            hasMoreItems = true;
+            products.Clear();
+        }
+
+        try
+        {
+            string query =
+            $"/api/product?Name={Uri.EscapeDataString(nameFilter)}&IsDescending=true&PageNumber={pageNumber}&PageSize={pageSize}";
+            var result = await Http.GetFromJsonAsync<ProductDto[]>(query);
+
+            if (result != null && result.Length != 0)
+            {
+                Console.WriteLine($"{query}: {result.Length}");
+                products.AddRange(result);
+            }
+            else
+            {
+                hasMoreItems = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al obtener los productos: {ex.Message}");
+        }
+    }
+
+    private async Task LoadMoreProducts()
+    {
+        pageNumber++;
+        await LoadProductsAsync();
+    }
+
+    private async Task DeleteProduct(ProductDto product)
+    {
+        Console.WriteLine($"DeleteProduct called for id: {product.Id}");
+        try
+        {
+            var response = await Http.DeleteAsync($"/api/product/{product.Id}");
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadProductsAsync(resetPagination: true);
+            }
+            else
+            {
+                Console.WriteLine("Error al borrar el producto");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al borrar el producto: {ex.Message}");
+        }
+    }
+
+    private void OnNameFilterChanged(ChangeEventArgs e)
+    {
+        nameFilter = e.Value?.ToString() ?? string.Empty;
+        debounceTimer.Stop();
+        debounceTimer.Start();
+    }
+}

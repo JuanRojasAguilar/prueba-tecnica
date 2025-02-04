@@ -1,0 +1,156 @@
+@page "/receipt"
+@rendermode InteractiveServer
+
+@using System.ComponentModel.DataAnnotations
+@using ui.Dtos.Receipt
+@using ui.Dtos.ReceiptDetails
+@using ui.Dtos.Customer
+@using ui.Dtos.Product
+@using System.Text.Json
+
+@inject HttpClient Http
+
+@inject ILogger<Receipt> Logger
+@inject NavigationManager Navigation
+
+<PageTitle>Formulario de la factura</PageTitle>
+<h1>Crear factura</h1>
+
+@if (Model == null)
+{
+    <p><em>Cargando...</em></p>
+}
+else
+{
+    <EditForm EditContext="_editContext" OnSubmit="Submit" FormName="ReceiptForm" class="container">
+    <DataAnnotationsValidator />
+
+    <div class="row mb-3">
+        <div class="col">
+            <label for="customerId" class="form-label">Cliente:</label>
+            <InputSelect class="form-control form-select" id="customerId" @bind-Value="Model.CustomerId">
+                @foreach (CustomerDto customer in Customers)
+                    {
+                        <option value="@customer.Id">@customer.Name</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => Model!.CustomerId" />
+            </div>
+        </div>
+
+        <h2>Productos</h2>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Cantidad</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var createReceiptDetailDto in Model.productList)
+                {
+                    <tr>
+                        <td>
+                            <InputSelect class="form-control form-select" id="productId"
+                                @bind-Value="createReceiptDetailDto.ProductId">
+                                @foreach (ProductDto product in ProductsToSelect)
+                                {
+                                    <option value="@product.Id">@product.Name</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="() => createReceiptDetailDto!.ProductId" />
+                        </td>
+                        <td>
+                            <InputNumber class="form-control" @bind-Value="createReceiptDetailDto.Quantity" />
+                            <ValidationMessage For="() => createReceiptDetailDto!.Quantity" />
+                        </td>
+                        <td>
+                            <button type="button" class="btn btn-danger ms-2"
+                                @onclick="@(() => DeleteProduct(createReceiptDetailDto))">Borrar</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <button class="btn btn-primary my-4" type="button" @onclick="AddProduct">Añadir producto</button>
+
+        <div class="text-center">
+            <button class="btn btn-primary" type="submit">Crear Factura</button>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [SupplyParameterFromForm]
+    private CreateReceiptDto? Model { get; set; }
+
+    private CustomerDto[] Customers { get; set; } = Array.Empty<CustomerDto>();
+    private ProductDto[] ProductsToSelect { get; set; } = Array.Empty<ProductDto>();
+
+    private EditContext? _editContext;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Model ??= new CreateReceiptDto();
+        Model.productList = new List<CreateReceiptDetailDto>();
+        _editContext = new EditContext(Model);
+
+        _editContext.OnFieldChanged += (sender, eventArgs) =>
+        {
+            StateHasChanged();
+        };
+
+        Customers = await Http.GetFromJsonAsync<CustomerDto[]>("/api/customer");
+        ProductsToSelect = await Http.GetFromJsonAsync<ProductDto[]>("/api/product");
+
+        if (Customers.Any())
+        {
+            Model.CustomerId = Customers.First().Id;
+        }
+    }
+
+    private async Task AddProduct()
+    {
+        var newProduct = new CreateReceiptDetailDto();
+        if (ProductsToSelect.Any())
+        {
+            newProduct.ProductId = ProductsToSelect.First().Id;
+        }
+        Model.productList.Add(newProduct);
+    }
+
+    private async Task DeleteProduct(CreateReceiptDetailDto productToRemove)
+    {
+        Model.productList.Remove(productToRemove);
+    }
+
+    private async Task Submit()
+    {
+        if (!_editContext.Validate())
+        {
+            return;
+        }
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/receipt", Model);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Logger.LogInformation("Receipt created");
+                Navigation.NavigateTo("/receipts");
+            }
+            else
+            {
+                Logger.LogError("Error creating receipt. Status code: {StatusCode}", response.StatusCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception occurred while creating receipt");
+        }
+    }
+}

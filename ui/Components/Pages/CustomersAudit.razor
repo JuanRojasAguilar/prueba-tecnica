@@ -1,0 +1,66 @@
+@page "/customers-audit"
+
+@using ui.Dtos.Customer
+
+@rendermode InteractiveServer
+
+@inject HttpClient Http
+
+<PageTitle>Auditoria de clientes</PageTitle>
+
+<h1>Auditoria de clientes</h1>
+
+@if (customers == null)
+{
+    <p><em>Cargando...</em></p>
+}
+else
+{
+    <table class="table">
+    <thead>
+        <tr>
+            <th>Identificador</th>
+            <th>Nombre</th>
+            <th>Email</th>
+            <th>Teléfono</th>
+            <th>Fecha de versión</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var customer in customers)
+            {
+                CustomerAuditDto currentCustomer = customer;
+                <tr>
+                    <td>@currentCustomer.Id</td>
+                    <td>@currentCustomer.Name</td>
+                    <td>@currentCustomer.Email</td>
+                    <td>@currentCustomer.Phone</td>
+                    <td>
+                        @currentCustomer.CreatedOn
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private CustomerAuditDto[]? customers;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCustomerAsync();
+    }
+
+    private async Task LoadCustomerAsync()
+    {
+        try
+        {
+            customers = await Http.GetFromJsonAsync<CustomerAuditDto[]>("/api/customer/auditories?IsDescending=true");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al obtener los clientes: {ex.Message}");
+        }
+    }
+}

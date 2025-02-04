@@ -1,0 +1,105 @@
+@page "/customer"
+@rendermode InteractiveServer
+
+@using System.ComponentModel.DataAnnotations
+@using ui.Auth
+@using ui.Dtos.Customer
+
+@inject JwtAuthenticationStateProvider jwtProvider
+@inject HttpClient Http
+@inject ILogger<Customer> Logger
+@inject NavigationManager Navigation
+
+
+<PageTitle>Formulario de cliente</PageTitle>
+<h1>Crear cliente</h1>
+
+<EditForm EditContext="_editContext" OnSubmit="Submit" FormName="CustomerForm" class="container">
+    <DataAnnotationsValidator />
+
+    <div class="row mb-3">
+        <div class="col">
+            <label for="id" class="form-label">Identificador:</label>
+            <InputText class="form-control" id="id" @bind-Value="Model!.Id" />
+            <ValidationMessage For="() => Model!.Id" />
+        </div>
+        <div class="col">
+            <label for="name" class="form-label">Nombre:</label>
+            <InputText class="form-control" id="name" @bind-Value="Model!.Name" />
+            <ValidationMessage For="() => Model!.Name" />
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col">
+            <label for="email" class="form-label">Email:</label>
+            <InputText class="form-control" id="email" @bind-Value="Model!.Email" />
+            <ValidationMessage For="() => Model!.Email" />
+        </div>
+        <div class="col">
+            <label for="phone" class="form-label">Teléfono:</label>
+            <InputText class="form-control" id="phone" @bind-Value="Model!.Phone" />
+            <ValidationMessage For="() => Model!.Phone" />
+        </div>
+    </div>
+
+    <div>
+        <button class="btn btn-primary" type="submit">Crear cliente</button>
+    </div>
+</EditForm>
+
+@code {
+    [SupplyParameterFromForm]
+    private CreateCustomerDto? Model { get; set; }
+
+    private EditContext? _editContext;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ValidateJwt();
+        Model ??= new CreateCustomerDto();
+        _editContext = new EditContext(Model);
+
+        _editContext.OnFieldChanged += (sender, eventArgs) =>
+        {
+            StateHasChanged();
+        };
+    }
+
+    protected async Task ValidateJwt()
+    {
+        var authState = await jwtProvider.GetAuthenticationStateAsync();
+
+        if (authState.User.Identity.IsAuthenticated == false)
+        {
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+    }
+
+    private async Task Submit()
+    {
+        if (!_editContext.Validate())
+        {
+            return;
+        }
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/customer", Model);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Logger.LogInformation("Customer with Id = {Id} created successfully.", Model?.Id);
+                Navigation.NavigateTo("/customers");
+            }
+            else
+            {
+                Logger.LogError("Error creating customer. Status code: {StatusCode}", response.StatusCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Exception occurred while creating customer with Id = {Id}.", Model?.Id);
+        }
+    }
+}

@@ -1,0 +1,51 @@
+﻿<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">Juan Rojas</a>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+
+<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
+                <div class="px-1"><span class="bi bi-house" aria-hidden="true"></span></div>
+                <span>Home</span>
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="products">
+                <div class="px-1"><span class="bi bi-box-fill" aria-hidden="true"></span> </div>
+                <span>Productos</span>
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="products-audit">
+                <div class="px-1"><span class="bi bi-box-fill" aria-hidden="true"></span> </div>
+                <span>Productos - Auditoria</span>
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="customers">
+                <div class="px-1"><span class="bi bi-person-circle" aria-hidden="true"></span> </div>
+                <span>Clientes</span>
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="customers-audit">
+                <div class="px-1"><span class="bi bi-person-circle" aria-hidden="true"></span> </div>
+                <span>Clientes - Auditoria</span>
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="receipts">
+                <div class="px-1"><span class="bi bi-receipt" aria-hidden="true"></span> </div>
+                <span>Recibos</span>
+            </NavLink>
+        </div>
+
+    </nav>
+</div>

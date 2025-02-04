@@ -1,0 +1,96 @@
+@page "/receipt/{receiptId}"
+@rendermode InteractiveServer
+
+@using System.ComponentModel.DataAnnotations
+@using ui.Dtos.Receipt
+
+@inject ILogger<ReceiptView> Logger
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<PageTitle>Ver factura @receiptId</PageTitle>
+<h1>Factura: @receiptId</h1>
+
+@if (Model is null)
+{
+    <p>Cargando...</p>
+}
+else
+{
+    <div class="container">
+    <div class="row my-4">
+        <div class="col">
+            <b>Fecha: </b>
+            <span>@Model.CreatedOn</span>
+        </div>
+        <div class="col">
+            <b>Nombre cliente: </b>
+            <span>@Model.Customer.Name</span>
+        </div>
+        <div class="col">
+            <b>Correo: </b>
+            <span>@Model.Customer.Email</span>
+        </div>
+        <div class="col">
+            <b>Teléfono cliente: </b>
+            <span>@Model.Customer.Phone</span>
+        </div>
+    </div>
+    <div class="row">
+        <h2>Productos en la factura</h2>
+    </div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Nombre</th>
+                <th>Cantidad</th>
+                <th>Precio unitario</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var receiptDetail in Model.ReceiptDetails)
+                {
+                    <tr>
+                        <td>@receiptDetail.ProductId</td>
+                        <td>@receiptDetail.ProductName</td>
+                        <td>@receiptDetail.Quantity</td>
+                        <td>@receiptDetail.UnitPrice</td>
+                        <td>@(receiptDetail.UnitPrice * receiptDetail.Quantity)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <div>
+            <a class="btn btn-primary" href="/receipts">Volver</a>
+        </div>
+    </div>
+
+}
+
+@code {
+    [Parameter]
+    public string receiptId { get; set; } = string.Empty;
+
+    private ReceiptDto? Model { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Model = await Http.GetFromJsonAsync<ReceiptDto>($"/api/receipt/{receiptId}");
+            if (Model is null)
+            {
+                Logger.LogError("Receipt with Id {receiptId} not found.", receiptId);
+                Navigation.NavigateTo("/products");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading product with Id {receiptId}.", receiptId);
+            Navigation.NavigateTo("/receipt");
+        }
+    }
+}
