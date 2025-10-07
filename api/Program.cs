@@ -1,7 +1,13 @@
 using api.Data;
 using api.Interfaces;
+using api.Model.Utils;
 using api.Repositories;
-using api.Services;
+using api.Application.Services;
+using api.Application.Interfaces;
+using api.Repository.Data;
+using api.Repository.Providers;
+using api.Repository.Providers.Implementations;
+using api.Repository.Providers.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -56,15 +62,18 @@ builder.Services.AddAuthentication(options =>
 });
 
 // Repositories
-builder.Services.AddScoped<ProductRepository, ProductRepositoryImpl>();
-builder.Services.AddScoped<ReceiptRepository, ReceiptRepositoryImpl>();
-builder.Services.AddScoped<CustomerRepository, CustomerRepositoryImpl>();
+builder.Services.AddScoped<IProductProvider, ProductProvider>();
+builder.Services.AddScoped<IReceiptProvider, ReceiptProvider>();
+builder.Services.AddScoped<ICustomerProvider, CustomerProvider>();
 
 // Services
-builder.Services.AddScoped<CustomerService, CustomerServiceImpl>();
-builder.Services.AddScoped<ProductService, ProductServiceImpl>();
-builder.Services.AddScoped<ReceiptService, ReceiptServiceImpl>();
-builder.Services.AddScoped<TokenService, TokenServiceImpl>();
+builder.Services.AddScoped<ICustomerService, CustomerServiceImpl>();
+builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<IReceiptService, ReceiptServiceImpl>();
+builder.Services.AddScoped<ITokenService, TokenServiceImpl>();
+
+// Transients utils
+builder.Services.AddTransient<PriceConverter>();
 
 builder.Services.AddSingleton<DbCommandInterceptor, DatabaseLoggerInterceptor>();
 

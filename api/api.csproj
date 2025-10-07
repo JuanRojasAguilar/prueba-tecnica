@@ -25,4 +25,15 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="api-tests\obj\api-tests.csproj.nuget.dgspec.json" />
+    <_ContentIncludedByDefault Remove="api-tests\obj\project.assets.json" />
+    <_ContentIncludedByDefault Remove="api-tests\obj\project.packagespec.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Application\" />
+    <Folder Include="Repository\" />
+  </ItemGroup>
+
 </Project>
